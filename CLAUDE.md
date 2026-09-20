@@ -41,6 +41,8 @@ YouTube 영상의 특정 구간을 배속 조절해 무한 반복하는 연습 �
 - 원격 저장소: `origin` → https://github.com/museloper/LoopTube.git (`main` 브랜치 추적 중).
 - **배포는 Vercel 없이 GitHub Pages로 한다.** 이 앱은 API 라우트·Server Actions·쿠키·동적 라우트 파라미터·`next/image` 등 서버가 필요한 기능을 전혀 쓰지 않으므로 `output: 'export'`로 완전 정적 export가 된다 (`next.config.ts`). `main` 브랜치에 push하면 `.github/workflows/deploy.yml`이 typecheck→lint→test→build→GitHub Pages 배포까지 자동으로 수행한다. 배포 주소: https://museloper.github.io/LoopTube/
   - `basePath`를 절대 하드코딩하지 말 것. `next.config.ts`는 `process.env.PAGES_BASE_PATH`를 읽고, 워크플로가 `actions/configure-pages`의 출력값을 넣어준다 — 저장소 이름이 바뀌거나 커스텀 도메인을 연결해도 코드 수정이 필요 없다.
+  - CI의 `verify` 잡에서 `npx tsc --noEmit` 앞에 반드시 `npx next typegen`을 먼저 실행해야 한다. `LayoutProps` 같은 라우트 타입은 원래 `next build`/`next dev`가 부산물로 만들어주는데, 로컬은 이미 그걸 실행해봐서 `.next/types`가 남아있어 `tsc`만으로도 통과하는 것처럼 보이지만, 클린 CI 체크아웃에는 그 타입이 없어 `Cannot find name 'LayoutProps'`로 실패한다 (실제로 한 번 겪은 문제). 이 단계를 "중복이니 지워도 되겠지"하고 빼면 CI가 다시 깨진다.
+  - `package-lock.json`은 macOS에서 만들면 CI(Linux)에 필요한 옵셔널 네이티브 의존성(`@emnapi/runtime` 등, wasm32-wasi 계열)이 누락될 수 있다 — 실제로 겪은 문제. lockfile이 CI에서 `npm ci`로 EUSAGE 에러를 내면, 플랫폼 탓이니 `rm -rf node_modules package-lock.json && npm install`로 완전히 재생성할 것 (부분 수정으로 안 고쳐짐).
   - GitHub Pages 설정(Settings → Pages → Source: GitHub Actions)은 이미 `gh api`로 활성화해뒀다. 리포지토리를 새로 만들거나 fork한 경우에만 다시 설정하면 된다.
   - Server-only 기능(API 라우트, Server Actions 등)을 추가하는 순간 이 정적 export 전제가 깨진다 — 그런 기능이 필요해지면 GitHub Pages를 벗어나 Vercel 등 Node 서버가 있는 호스팅으로 옮겨야 한다는 뜻이니, 먼저 알릴 것.
 
