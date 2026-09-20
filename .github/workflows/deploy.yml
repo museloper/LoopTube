@@ -37,6 +37,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # `tsc` alone doesn't know about the route-prop types (LayoutProps,
+      # PageProps, ...) Next.js generates — normally as a side effect of
+      # `next build`/`next dev`. On a clean CI checkout neither has run yet,
+      # so generate them explicitly first.
+      - name: Generate route types
+        run: npx next typegen
+
       - name: Type check
         run: npx tsc --noEmit
 
