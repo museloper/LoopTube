@@ -39,6 +39,10 @@ YouTube 영상의 특정 구간을 배속 조절해 무한 반복하는 연습 �
 - Node 24 기준 환경이라 `@types/node`를 `^24`로 올려뒀다 (create-next-app 기본값 `^20`에서 변경 — vitest 5의 peer dependency 요구사항 때문). Next.js 관련 패키지만 별도로 올릴 때 이 버전을 다시 낮추지 말 것.
 - `next.config.ts`가 아니라 `vitest.config.mts` — vitest 설정 파일은 `.mts` 확장자여야 네이티브 configLoader 경고가 안 뜬다.
 - 원격 저장소: `origin` → https://github.com/museloper/LoopTube.git (`main` 브랜치 추적 중).
+- **배포는 Vercel 없이 GitHub Pages로 한다.** 이 앱은 API 라우트·Server Actions·쿠키·동적 라우트 파라미터·`next/image` 등 서버가 필요한 기능을 전혀 쓰지 않으므로 `output: 'export'`로 완전 정적 export가 된다 (`next.config.ts`). `main` 브랜치에 push하면 `.github/workflows/deploy.yml`이 typecheck→lint→test→build→GitHub Pages 배포까지 자동으로 수행한다. 배포 주소: https://museloper.github.io/LoopTube/
+  - `basePath`를 절대 하드코딩하지 말 것. `next.config.ts`는 `process.env.PAGES_BASE_PATH`를 읽고, 워크플로가 `actions/configure-pages`의 출력값을 넣어준다 — 저장소 이름이 바뀌거나 커스텀 도메인을 연결해도 코드 수정이 필요 없다.
+  - GitHub Pages 설정(Settings → Pages → Source: GitHub Actions)은 이미 `gh api`로 활성화해뒀다. 리포지토리를 새로 만들거나 fork한 경우에만 다시 설정하면 된다.
+  - Server-only 기능(API 라우트, Server Actions 등)을 추가하는 순간 이 정적 export 전제가 깨진다 — 그런 기능이 필요해지면 GitHub Pages를 벗어나 Vercel 등 Node 서버가 있는 호스팅으로 옮겨야 한다는 뜻이니, 먼저 알릴 것.
 
 ## 커밋 컨벤션
 

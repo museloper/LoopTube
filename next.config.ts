@@ -1,7 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Fully static — this app has no API routes, server actions, or dynamic
+  // route params, so it can be hosted on GitHub Pages (or any static host)
+  // without a Node.js server. See docs/PLAN.md and CLAUDE.md.
+  output: "export",
+  // Left undefined for local dev and non-Pages hosts (Vercel, etc.), where
+  // the site is served from "/". The GitHub Actions workflow sets this from
+  // actions/configure-pages, which detects the right value (a "/<repo>"
+  // subpath, or "" for a custom domain / user site) automatically — do not
+  // hard-code a repo name here.
+  basePath: process.env.PAGES_BASE_PATH,
 };
 
 export default nextConfig;
