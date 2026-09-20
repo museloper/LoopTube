@@ -38,7 +38,7 @@ YouTube 영상의 특정 구간을 배속 조절해 무한 반복하는 연습 �
 
 - Node 24 기준 환경이라 `@types/node`를 `^24`로 올려뒀다 (create-next-app 기본값 `^20`에서 변경 — vitest 5의 peer dependency 요구사항 때문). Next.js 관련 패키지만 별도로 올릴 때 이 버전을 다시 낮추지 말 것.
 - `next.config.ts`가 아니라 `vitest.config.mts` — vitest 설정 파일은 `.mts` 확장자여야 네이티브 configLoader 경고가 안 뜬다.
-- 아직 원격 git remote 없음 (로컬 저장소만). PR을 만들라는 요청이 오면 먼저 remote 설정이 필요하다고 알릴 것.
+- 원격 저장소: `origin` → https://github.com/museloper/LoopTube.git (`main` 브랜치 추적 중).
 
 ## 커밋 컨벤션
 
