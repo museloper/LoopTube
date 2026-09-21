@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { parseYouTubeUrl } from "@/lib/youtube/parseUrl";
+import { parseYouTubeUrl, type ParsedVideo } from "@/lib/youtube/parseUrl";
 
 interface UrlInputProps {
-  onSubmit: (videoId: string, startSeconds: number | null) => void;
+  onSubmit: (parsed: ParsedVideo) => void;
 }
 
 export function UrlInput({ onSubmit }: UrlInputProps) {
@@ -19,7 +19,7 @@ export function UrlInput({ onSubmit }: UrlInputProps) {
       return;
     }
     setInvalid(false);
-    onSubmit(parsed.videoId, parsed.startSeconds);
+    onSubmit(parsed);
   };
 
   return (
@@ -32,7 +32,7 @@ export function UrlInput({ onSubmit }: UrlInputProps) {
             setInvalid(false);
           }}
           inputMode="url"
-          placeholder="YouTube 링크 붙여넣기"
+          placeholder="YouTube 영상 또는 재생목록 링크 붙여넣기"
           aria-invalid={invalid}
           className="min-w-0 flex-1 rounded-lg bg-neutral-900 px-3 py-2.5 text-sm text-neutral-100 outline-none ring-1 ring-neutral-700 placeholder:text-neutral-500 focus:ring-emerald-500 aria-[invalid=true]:ring-red-500"
         />

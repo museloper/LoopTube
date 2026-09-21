@@ -16,7 +16,15 @@ export interface UsePlayerResult {
   rate: number;
   availableRates: number[];
   error: string | null;
+  /**
+   * Video ids of the most recently resolved playlist, in order. Persists
+   * across loading an individual video from that list (so it stays
+   * browsable) until a new playlist is cued or clearPlaylist() is called.
+   */
+  playlistIds: string[];
   load: (videoId: string, startSeconds?: number) => void;
+  cuePlaylist: (playlistId: string) => void;
+  clearPlaylist: () => void;
   requestRate: (rate: number) => void;
 }
 
@@ -41,6 +49,7 @@ export function usePlayer(): UsePlayerResult {
   /** Survives the cue-time rate reset so we can re-apply the user's choice. */
   const desiredRateRef = useRef(1);
   const pendingLoadRef = useRef<{ videoId: string; startSeconds: number } | null>(null);
+  const pendingPlaylistRef = useRef<string | null>(null);
 
   const [player, setPlayer] = useState<YTPlayer | null>(null);
   const [ready, setReady] = useState(false);
@@ -49,6 +58,7 @@ export function usePlayer(): UsePlayerResult {
   const [rate, setRate] = useState(1);
   const [availableRates, setAvailableRates] = useState<number[]>(DEFAULT_RATES);
   const [error, setError] = useState<string | null>(null);
+  const [playlistIds, setPlaylistIds] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,9 +86,13 @@ export function usePlayer(): UsePlayerResult {
               setReady(true);
               setAvailableRates(readRates(e.target));
               const queued = pendingLoadRef.current;
+              const queuedPlaylist = pendingPlaylistRef.current;
               if (queued) {
                 pendingLoadRef.current = null;
                 e.target.loadVideoById(queued.videoId, queued.startSeconds);
+              } else if (queuedPlaylist) {
+                pendingPlaylistRef.current = null;
+                e.target.cuePlaylist({ list: queuedPlaylist, listType: "playlist" });
               }
             },
             onStateChange: (e) => {
@@ -93,6 +107,11 @@ export function usePlayer(): UsePlayerResult {
                 if (e.target.getPlaybackRate() !== desiredRateRef.current) {
                   e.target.setPlaybackRate(desiredRateRef.current);
                 }
+                // Undefined right after loadVideoById (no playlist context).
+                // Leave playlistIds as-is then, rather than clearing it, so
+                // picking a video out of a resolved list doesn't drop the list.
+                const ids = e.target.getPlaylist();
+                if (Array.isArray(ids) && ids.length > 0) setPlaylistIds(ids);
               }
             },
             onPlaybackRateChange: (e) => {
@@ -120,6 +139,7 @@ export function usePlayer(): UsePlayerResult {
   const load = useCallback((videoId: string, startSeconds = 0) => {
     setError(null);
     setDuration(0);
+    pendingPlaylistRef.current = null;
     const player = playerRef.current;
     if (!player) {
       pendingLoadRef.current = { videoId, startSeconds };
@@ -127,6 +147,21 @@ export function usePlayer(): UsePlayerResult {
     }
     player.loadVideoById(videoId, startSeconds);
   }, []);
+
+  const cuePlaylist = useCallback((playlistId: string) => {
+    setError(null);
+    setDuration(0);
+    setPlaylistIds([]);
+    pendingLoadRef.current = null;
+    const player = playerRef.current;
+    if (!player) {
+      pendingPlaylistRef.current = playlistId;
+      return;
+    }
+    player.cuePlaylist({ list: playlistId, listType: "playlist" });
+  }, []);
+
+  const clearPlaylist = useCallback(() => setPlaylistIds([]), []);
 
   const requestRate = useCallback((next: number) => {
     desiredRateRef.current = next;
@@ -142,7 +177,10 @@ export function usePlayer(): UsePlayerResult {
     rate,
     availableRates,
     error,
+    playlistIds,
     load,
+    cuePlaylist,
+    clearPlaylist,
     requestRate,
   };
 }

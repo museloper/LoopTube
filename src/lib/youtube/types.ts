@@ -32,6 +32,11 @@ export interface YTPlayer {
   getAvailablePlaybackRates(): number[];
   loadVideoById(videoId: string, startSeconds?: number): void;
   cueVideoById(videoId: string, startSeconds?: number): void;
+  // Note: there is no "...ById" variant of this one — that's cueVideoById's
+  // naming, but the playlist function is just cuePlaylist (object form).
+  cuePlaylist(options: { list: string; listType?: string; index?: number; startSeconds?: number }): void;
+  /** Populated once a playlist is cued/loaded; undefined otherwise. */
+  getPlaylist(): string[] | undefined;
   destroy(): void;
 }
 

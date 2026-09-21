@@ -5,6 +5,7 @@ import { FineTuner } from "@/components/FineTuner";
 import { LoopBar } from "@/components/LoopBar";
 import { LoopLibrary } from "@/components/LoopLibrary";
 import { Player } from "@/components/Player";
+import { PlaylistPanel } from "@/components/PlaylistPanel";
 import { RepCounter } from "@/components/RepCounter";
 import { SpeedPicker } from "@/components/SpeedPicker";
 import { UrlInput } from "@/components/UrlInput";
@@ -14,6 +15,7 @@ import { usePlayer } from "@/hooks/usePlayer";
 import { usePlayhead } from "@/hooks/usePlayhead";
 import { saveLoop, type Loop } from "@/lib/db";
 import { MIN_REGION_SECONDS } from "@/lib/loopEngine";
+import type { ParsedVideo } from "@/lib/youtube/parseUrl";
 import { fetchVideoMeta, type VideoMeta } from "@/lib/youtube/oembed";
 import { PlayerState } from "@/lib/youtube/types";
 
@@ -30,7 +32,10 @@ export default function Home() {
     rate,
     availableRates,
     error,
+    playlistIds,
     load,
+    cuePlaylist,
+    clearPlaylist,
     requestRate,
   } = usePlayer();
 
@@ -70,6 +75,21 @@ export default function Home() {
       fetchVideoMeta(id).then(setMeta);
     },
     [load],
+  );
+
+  const handleUrlSubmit = useCallback(
+    (parsed: ParsedVideo) => {
+      if (parsed.playlistId) {
+        setVideoId(null);
+        setMeta(null);
+        setLoopOn(false);
+        cuePlaylist(parsed.playlistId);
+      } else if (parsed.videoId) {
+        clearPlaylist();
+        handleLoad(parsed.videoId, parsed.startSeconds);
+      }
+    },
+    [cuePlaylist, clearPlaylist, handleLoad],
   );
 
   const clampToVideo = useCallback(
@@ -174,9 +194,22 @@ export default function Home() {
         <p className="text-xs text-neutral-500">구간 반복 · 속도 조절 연습기</p>
       </header>
 
-      <UrlInput onSubmit={handleLoad} />
+      <UrlInput onSubmit={handleUrlSubmit} />
 
-      <Player containerRef={containerRef} error={error} hasVideo={Boolean(videoId)} />
+      <Player
+        containerRef={containerRef}
+        error={error}
+        hasVideo={Boolean(videoId) || playlistIds.length > 0}
+      />
+
+      {playlistIds.length > 0 && (
+        <PlaylistPanel
+          videoIds={playlistIds}
+          activeVideoId={videoId}
+          onSelect={(id) => handleLoad(id, null)}
+          onClose={clearPlaylist}
+        />
+      )}
 
       {meta && (
         <p className="truncate text-sm text-neutral-300">

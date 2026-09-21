@@ -74,9 +74,10 @@ export default function DebugPage() {
       </p>
 
       <UrlInput
-        onSubmit={(id) => {
-          setVideoId(id);
-          load(id, REGION_START);
+        onSubmit={(parsed) => {
+          if (!parsed.videoId) return;
+          setVideoId(parsed.videoId);
+          load(parsed.videoId, REGION_START);
         }}
       />
 

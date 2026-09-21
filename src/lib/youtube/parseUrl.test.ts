@@ -5,14 +5,38 @@ describe("parseYouTubeUrl", () => {
   it("reads a standard watch URL", () => {
     expect(parseYouTubeUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ")).toEqual({
       videoId: "dQw4w9WgXcQ",
+      playlistId: null,
       startSeconds: null,
     });
   });
 
-  it("keeps the video id when a playlist tags along", () => {
-    expect(
-      parseYouTubeUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PL123&index=2")?.videoId,
-    ).toBe("dQw4w9WgXcQ");
+  it("keeps both ids when a video is opened from inside a playlist", () => {
+    const parsed = parseYouTubeUrl(
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf&index=2",
+    );
+    expect(parsed?.videoId).toBe("dQw4w9WgXcQ");
+    expect(parsed?.playlistId).toBe("PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf");
+  });
+
+  it("reads a bare playlist URL with no video id", () => {
+    const parsed = parseYouTubeUrl("https://www.youtube.com/playlist?list=PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf");
+    expect(parsed).toEqual({
+      videoId: null,
+      playlistId: "PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf",
+      startSeconds: null,
+    });
+  });
+
+  it("reads a playlist embed URL (/embed/videoseries)", () => {
+    const parsed = parseYouTubeUrl(
+      "https://www.youtube.com/embed/videoseries?list=PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf",
+    );
+    expect(parsed?.videoId).toBeNull();
+    expect(parsed?.playlistId).toBe("PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf");
+  });
+
+  it("rejects a garbage list param on a non-YouTube host", () => {
+    expect(parseYouTubeUrl("https://vimeo.com/12345?list=whatever")).toBeNull();
   });
 
   it.each([
