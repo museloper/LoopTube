@@ -88,17 +88,20 @@ export function useLoopEngine({
     };
   }, [player, store]);
 
+  // `player` is a dependency so these also run right after the effect above
+  // replaces the engine; otherwise a fresh engine keeps its defaults (an empty
+  // region) until one of the values happens to change.
   useEffect(() => {
     engineRef.current?.setRegion(regionStart, regionEnd);
-  }, [regionStart, regionEnd]);
+  }, [player, regionStart, regionEnd]);
 
   useEffect(() => {
     engineRef.current?.setRate(rate);
-  }, [rate]);
+  }, [player, rate]);
 
   useEffect(() => {
     engineRef.current?.setRestSeconds(restSeconds);
-  }, [restSeconds]);
+  }, [player, restSeconds]);
 
   useEffect(() => {
     const engine = engineRef.current;
