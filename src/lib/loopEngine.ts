@@ -134,7 +134,9 @@ export class LoopEngine {
 
     if (this.phase === "seeking") {
       const elapsedMs = performance.now() - this.seekIssuedAt;
-      const landed = t <= this.a + LANDING_WINDOW;
+      // On a region shorter than the window the playhead is already near A
+      // before the seek lands, so also require that it actually jumped back.
+      const landed = t < this.seekTriggerTime && t <= this.a + LANDING_WINDOW;
       if (landed) {
         this.recordLanding(elapsedMs);
         this.phase = this.beginRest() ? "resting" : "armed";

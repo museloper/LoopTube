@@ -169,6 +169,22 @@ describe("LoopEngine on a one-second region", () => {
   });
 });
 
+describe("LoopEngine on a region shorter than the landing window", () => {
+  const options = { a: 10, b: 10.3, latencyMs: 120 } as const;
+
+  it("waits for the playhead to jump back before counting a landing", () => {
+    // Before the seek lands the playhead is already within half a second of A,
+    // so proximity alone would log a one-frame latency.
+    expect(run(options).lookaheadMs).toBeGreaterThan(100);
+  });
+
+  it("measures the real latency on every repetition", () => {
+    // A premature landing also re-arms the trigger while the first seek is
+    // still in flight, firing a second one and double-counting the rep.
+    expect(run(options).samples.every((s) => s.latencyMs >= 100)).toBe(true);
+  });
+});
+
 describe("LoopEngine guards", () => {
   it("clamps the learned latency to a floor on a fast connection", () => {
     const { lookaheadMs } = run({ latencyMs: 30 });
