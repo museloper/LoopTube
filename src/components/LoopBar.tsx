@@ -62,6 +62,17 @@ export function LoopBar({
     setDragging(null);
   };
 
+  // Same steps as the global seek shortcuts; stopping propagation keeps a
+  // focused handle from also moving the playhead.
+  const onHandleKeyDown = (handle: Handle) => (event: React.KeyboardEvent) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    event.stopPropagation();
+    const step = (event.shiftKey ? 1 : 0.1) * (event.key === "ArrowLeft" ? -1 : 1);
+    if (handle === "start") onChangeStart(start + step);
+    else onChangeEnd(end + step);
+  };
+
   const pct = (seconds: number) => (duration > 0 ? (seconds / duration) * 100 : 0);
   const disabled = duration <= 0;
 
@@ -93,7 +104,9 @@ export function LoopBar({
             aria-valuenow={handle === "start" ? start : end}
             aria-valuemin={0}
             aria-valuemax={duration}
+            aria-valuetext={formatTime(handle === "start" ? start : end)}
             tabIndex={disabled ? -1 : 0}
+            onKeyDown={disabled ? undefined : onHandleKeyDown(handle)}
             onPointerDown={disabled ? undefined : beginDrag(handle)}
             onPointerMove={onPointerMove}
             onPointerUp={endDrag}

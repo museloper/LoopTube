@@ -14,8 +14,8 @@ export const viewport: Viewport = {
   themeColor: "#0a0a0a",
   width: "device-width",
   initialScale: 1,
-  // Keep pinch-zoom available, but stop double-tap zoom from firing when the
-  // user taps the A/B buttons quickly.
+  // Keep pinch-zoom available. Double-tap zoom on the controls is disabled
+  // with touch-action in globals.css — a viewport cap alone doesn't stop it.
   maximumScale: 5,
 };
 

@@ -12,3 +12,12 @@ body {
      page from bouncing or text-selecting while a handle is being moved. */
   overscroll-behavior-y: contain;
 }
+
+/* The A/B and nudge buttons get tapped in quick succession; without this,
+   mobile browsers read two taps as a double-tap zoom. In the base layer so a
+   touch-* utility on an element still wins. */
+@layer base {
+  button {
+    touch-action: manipulation;
+  }
+}
