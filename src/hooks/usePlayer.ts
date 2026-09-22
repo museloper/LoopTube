@@ -23,7 +23,11 @@ export interface UsePlayerResult {
    */
   playlistIds: string[];
   load: (videoId: string, startSeconds?: number) => void;
-  cuePlaylist: (playlistId: string) => void;
+  /**
+   * Resolves a playlist for browsing. With `thenLoad`, that video is opened
+   * once the list is known (a watch link that also carries `list=`).
+   */
+  cuePlaylist: (playlistId: string, thenLoad?: { videoId: string; startSeconds: number }) => void;
   clearPlaylist: () => void;
   requestRate: (rate: number) => void;
 }
@@ -50,6 +54,8 @@ export function usePlayer(): UsePlayerResult {
   const desiredRateRef = useRef(1);
   const pendingLoadRef = useRef<{ videoId: string; startSeconds: number } | null>(null);
   const pendingPlaylistRef = useRef<string | null>(null);
+  /** Video to open as soon as the cued playlist reaches CUED (or fails). */
+  const playlistVideoRef = useRef<{ videoId: string; startSeconds: number } | null>(null);
 
   const [player, setPlayer] = useState<YTPlayer | null>(null);
   const [ready, setReady] = useState(false);
@@ -100,6 +106,20 @@ export function usePlayer(): UsePlayerResult {
               const state = e.data as PlayerStateValue;
               setPlayerState(state);
 
+              // A watch link that also carried list=: once the list has cued,
+              // open the linked video even if the list gave no ids (Mixes and
+              // private lists can), so the player never shows a different
+              // video from the one the UI is set up for. The video's own
+              // PLAYING event fills in duration and rate.
+              const then = playlistVideoRef.current;
+              if (then && state === PlayerState.CUED) {
+                playlistVideoRef.current = null;
+                const ids = e.target.getPlaylist();
+                if (Array.isArray(ids) && ids.length > 0) setPlaylistIds(ids);
+                e.target.loadVideoById(then.videoId, then.startSeconds);
+                return;
+              }
+
               if (state === PlayerState.CUED || state === PlayerState.PLAYING) {
                 setDuration(e.target.getDuration());
                 setAvailableRates(readRates(e.target));
@@ -118,7 +138,16 @@ export function usePlayer(): UsePlayerResult {
               if (!cancelled) setRate(e.data);
             },
             onError: (e) => {
-              if (!cancelled) setError(describeError(e.data));
+              if (cancelled) return;
+              // The list itself failed (private, deleted); still open the video
+              // the link pointed at rather than showing nothing.
+              const then = playlistVideoRef.current;
+              if (then) {
+                playlistVideoRef.current = null;
+                e.target.loadVideoById(then.videoId, then.startSeconds);
+                return;
+              }
+              setError(describeError(e.data));
             },
           },
         });
@@ -140,6 +169,7 @@ export function usePlayer(): UsePlayerResult {
     setError(null);
     setDuration(0);
     pendingPlaylistRef.current = null;
+    playlistVideoRef.current = null;
     const player = playerRef.current;
     if (!player) {
       pendingLoadRef.current = { videoId, startSeconds };
@@ -148,18 +178,22 @@ export function usePlayer(): UsePlayerResult {
     player.loadVideoById(videoId, startSeconds);
   }, []);
 
-  const cuePlaylist = useCallback((playlistId: string) => {
-    setError(null);
-    setDuration(0);
-    setPlaylistIds([]);
-    pendingLoadRef.current = null;
-    const player = playerRef.current;
-    if (!player) {
-      pendingPlaylistRef.current = playlistId;
-      return;
-    }
-    player.cuePlaylist({ list: playlistId, listType: "playlist" });
-  }, []);
+  const cuePlaylist = useCallback(
+    (playlistId: string, thenLoad?: { videoId: string; startSeconds: number }) => {
+      setError(null);
+      setDuration(0);
+      setPlaylistIds([]);
+      pendingLoadRef.current = null;
+      playlistVideoRef.current = thenLoad ?? null;
+      const player = playerRef.current;
+      if (!player) {
+        pendingPlaylistRef.current = playlistId;
+        return;
+      }
+      player.cuePlaylist({ list: playlistId, listType: "playlist" });
+    },
+    [],
+  );
 
   const clearPlaylist = useCallback(() => setPlaylistIds([]), []);
 

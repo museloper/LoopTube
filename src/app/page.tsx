@@ -64,32 +64,43 @@ export default function Home() {
     restSeconds,
   });
 
+  /** Clears everything tied to the previous video; the caller does the loading. */
+  const resetForVideo = useCallback((id: string | null, startSeconds: number | null) => {
+    setVideoId(id);
+    setMeta(null);
+    setLoopOn(false);
+    setStart(startSeconds ?? 0);
+    setEndOverride(null);
+    if (id) fetchVideoMeta(id).then(setMeta);
+  }, []);
+
   const handleLoad = useCallback(
     (id: string, startSeconds: number | null) => {
-      setVideoId(id);
-      setMeta(null);
-      setLoopOn(false);
-      setStart(startSeconds ?? 0);
-      setEndOverride(null);
+      resetForVideo(id, startSeconds);
       load(id, startSeconds ?? 0);
-      fetchVideoMeta(id).then(setMeta);
     },
-    [load],
+    [resetForVideo, load],
   );
 
   const handleUrlSubmit = useCallback(
     (parsed: ParsedVideo) => {
-      if (parsed.playlistId) {
-        setVideoId(null);
-        setMeta(null);
-        setLoopOn(false);
+      if (parsed.playlistId && parsed.videoId) {
+        // A video opened from inside a playlist: practice that video, and
+        // keep the list around for browsing.
+        resetForVideo(parsed.videoId, parsed.startSeconds);
+        cuePlaylist(parsed.playlistId, {
+          videoId: parsed.videoId,
+          startSeconds: parsed.startSeconds ?? 0,
+        });
+      } else if (parsed.playlistId) {
+        resetForVideo(null, null);
         cuePlaylist(parsed.playlistId);
       } else if (parsed.videoId) {
         clearPlaylist();
         handleLoad(parsed.videoId, parsed.startSeconds);
       }
     },
-    [cuePlaylist, clearPlaylist, handleLoad],
+    [resetForVideo, cuePlaylist, clearPlaylist, handleLoad],
   );
 
   const clampToVideo = useCallback(
