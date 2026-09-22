@@ -135,6 +135,8 @@ loops (
 ```
 로컬(Dexie) 우선 저장 → 로그인 시 `updated_at` 기준 last-write-wins 병합. 비로그인 사용자도 모든 기능을 쓸 수 있고, 나중에 로그인하면 로컬 데이터가 그대로 업로드된다. `src/lib/db.ts`의 `Loop.syncedAt` 필드는 이를 위해 미리 만들어 둔 자리이며, 동기화 코드가 붙기 전까지는 항상 `null`이다.
 
+> **3단계 착수 시 주의 — 현재 인덱스는 동기화 쿼리에 쓸 수 없다.** `db.ts`는 `syncedAt`과 `deleted`에 인덱스를 걸어두었지만, IndexedDB는 `null`과 boolean을 키로 받지 않아 이 값을 가진 행은 인덱스에 아예 들어가지 않는다. 그래서 `where("syncedAt").equals(null)`("아직 안 올라간 행")이나 `where("deleted").equals(true)` 같은 쿼리는 항상 빈 결과를 돌려준다. 동기화 코드를 붙이기 전에 `syncedAt`은 `0`(미동기화)/타임스탬프로, `deleted`는 `0`/`1`로 바꾸고 `db.version(2).upgrade()`로 기존 행을 변환할 것.
+
 ### 플랫폼별 함정 (미리 처리)
 - **iOS 전반**: `playerVars`에 `playsinline: 1` 필수. 빠뜨리면 재생 시 강제 전체화면이 되어 커스텀 컨트롤이 무력화된다. (구현됨: `usePlayer.ts`)
 - **Capacitor iOS의 Error 153** (4단계에서 실제로 마주칠 이슈): WKWebView가 referrer를 정상적으로 보내지 않아 발생. `capacitor.config.ts`에 `server.iosScheme: 'https'` + `server.hostname`을 설정하고, `playerVars.origin`에 동일 호스트를 넘겨 해결한다.

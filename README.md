@@ -1,36 +1,38 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LoopTube
 
-## Getting Started
+YouTube 영상의 원하는 구간을 원하는 배속으로 무한 반복하는 악기·댄스 연습 도구입니다.
 
-First, run the development server:
+배포 주소: https://museloper.github.io/LoopTube/
+
+## 기능
+
+- 영상 / 재생목록 링크 붙여넣기 (`watch?v=`, `youtu.be/`, `/shorts/`, `/playlist?list=` 등)
+- A-B 구간 지정: 타임라인 드래그, 0.1초·1초 단위 미세 조정, "직전 3초를 구간으로"
+- 배속: 플레이어가 지원하는 값만 버튼으로 노출 (YouTube IFrame API 제약상 0.25 단위)
+- 반복 카운터, 반복 사이 쉬는 시간, N회마다 자동 속도 올리기
+- 구간 저장 (브라우저 IndexedDB, 로그인 불필요)
+- 단축키: `Space` 재생 · `A`/`B` 지점 지정 · `L` 반복 · `←`/`→` 0.1초 · `Shift`+`←`/`→` 1초 · `[`/`]` 속도
+
+## 개발
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3000
+npm test           # vitest — 루프 엔진·URL 파싱 등 순수 로직
+npx tsc --noEmit
+npx eslint src
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 루프 정확도 측정 (`/debug`)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+자동 테스트는 실제 YouTube 재생을 검증하지 못합니다. 루프 엔진을 바꾼 뒤에는 브라우저에서
+`/debug` 페이지를 열어 영상을 불러오고 "측정 시작"을 눌러 100회 반복을 돌린 다음,
+**21회 이후 p95 오버런이 150ms 미만**인지 직접 확인하세요.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 배포
 
-## Learn More
+`main` 브랜치에 push하면 GitHub Actions(`.github/workflows/deploy.yml`)가
+typecheck → lint → test → 정적 export 빌드 → GitHub Pages 배포를 수행합니다.
+서버 기능이 없는 완전 정적 사이트(`output: "export"`)입니다.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+설계 배경과 로드맵은 [`docs/PLAN.md`](docs/PLAN.md)에 있습니다.
