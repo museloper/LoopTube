@@ -2,7 +2,19 @@
 
 # LoopTube — 프로젝트 규칙
 
-YouTube 영상의 특정 구간을 배속 조절해 무한 반복하는 연습 앱 (악기/댄스 연습용). 전체 설계 배경과 단계별 로드맵은 저장소 내 **`docs/PLAN.md`**에 있다 — 새 세션은 작업 전에 그 파일을 먼저 읽을 것. 이 문서는 그중 **코드를 읽어서는 알 수 없는 결정**만 요약한다.
+YouTube 영상의 특정 구간을 배속 조절해 무한 반복하는 연습 앱 (악기/댄스 연습용). 전체 설계 배경과 단계별 로드맵은 저장소 내 **`docs/PLAN.md`**에 있다 — 새 세션은 작업 전에 그 파일을 먼저 읽을 것. 이 문서는 그중 **코드를 읽어서는 알 수 없는 결정**만 요약한다. 결정의 자세한 경위는 `docs/decisions.md`에, 개인 PC 환경 메모는 `CLAUDE.local.md`(커밋 안 함)에 둔다.
+
+## 폴더 지도
+
+| 경로 | 역할 |
+|---|---|
+| `src/lib/loopEngine.ts` (+ `.test.ts`) | A-B 루프 엔진, 가상 클럭 테스트 |
+| `src/lib/youtube/` | IFrame API 로더·타입·URL 파서·oEmbed |
+| `src/lib/db.ts` | Dexie(IndexedDB) 저장 — 3단계 동기화 자리 |
+| `src/hooks/` | `usePlayer`(플레이어 상태·배속 확정), `useLoopEngine`, `usePlayhead`, `useHotkeys` |
+| `src/components/` | 화면 부품 (`SpeedPicker`, `LoopBar`, `FineTuner`, `RepCounter`, `PlaylistPanel` 등) |
+| `src/app/page.tsx` / `src/app/debug/` | 메인 화면 / 루프 정확도 측정 페이지 |
+| `docs/PLAN.md` / `docs/decisions.md` | 설계·로드맵 / 결정 경위 |
 
 ## 절대 바꾸면 안 되는 전제
 
@@ -14,8 +26,7 @@ YouTube 영상의 특정 구간을 배속 조절해 무한 반복하는 연습 �
 ## YouTube API의 구조적 한계 (버그 아님, 설계 전제)
 
 - **배속은 이산값만 가능하며, 최소 간격은 0.25다.** `setPlaybackRate()`는 `getAvailablePlaybackRates()`가 반환하는 값(보통 `0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2`) 외에는 가장 가까운 아래 값으로 내림한다. **0.05·0.1 단위 같은 미세 조정은 API 차원에서 불가능** — 사용자가 요청했다가 이 한계를 확인하고 철회한 적이 있다. 슬라이더로 만들면 표시값과 실제 재생 속도가 어긋나는 기만적 UI가 되므로, 반드시 지원 값만 노출하는 버튼으로 만든다 (`SpeedPicker.tsx`). 반환값을 절대 하드코딩하지 말 것 — 영상마다 다를 수 있다.
-  - **중요 — 이건 "기술적으로 불가능"이 아니라 "정책적으로 막혀 있음"이다.** YouTube 자체 웹사이트/앱에는 2019년(모바일)·2024년 12월(웹)부터 0.05 단위 "커스텀 속도" 슬라이더가 실제로 존재한다 — 즉 재생 파이프라인은 임의의 실수 배속을 다룰 수 있다는 뜻이다. 하지만 이 기능은 IFrame Player API 리비전 히스토리(2025년 7월까지 확인)에 전혀 반영되지 않았고, `setPlaybackRate()`의 내림 처리도 그대로다. 서드파티 임베드에는 YouTube가 의도적으로 이 정밀도를 열어주지 않은 것 — 향후 API가 개정되지 않는 한 우리 쪽에서 해결할 방법이 없다. 다음에 같은 질문이 나오면 "YouTube 자체는 되지만 우리가 쓰는 공개 API에는 안 열려 있다"고 바로 답할 것, 재조사 불필요.
-  - **왜 우회할 수 없는지**: 실제 재생은 `youtube.com` 도메인의 cross-origin iframe 안에서 일어나 그 안의 `<video>` 엘리먼트에 직접 접근할 수 없다. 임의 배속을 거는 브라우저 확장(Video Speed Controller 등)은 `youtube.com` 페이지에 직접 스크립트를 주입할 확장 권한이 있어 가능한 것이지, 우리처럼 자체 페이지에 iframe으로 임베드한 구조에서는 적용할 수 없는 방식이다. 유일한 우회로는 오디오 스트림을 추출해 우리가 제어하는 `<audio>`로 재생하는 것인데, 이는 이미 금지한 정책(스트림 추출·다운로드 금지)과 정면으로 충돌한다 — 다시 요청이 와도 진행하지 말 것.
+  - 이건 "기술적으로 불가능"이 아니라 **"정책적으로 막혀 있음"**이다. 같은 질문이 나오면 "YouTube 자체는 0.05 단위가 되지만 우리가 쓰는 공개 IFrame API에는 안 열려 있다"고 바로 답할 것, 재조사 불필요. 유일한 우회로는 오디오 스트림 추출이라 스트림 추출 금지 정책과 충돌한다 — 다시 요청이 와도 진행하지 말 것. (경위: `docs/decisions.md`)
 - **배속 확정은 `onPlaybackRateChange` 이벤트로만 한다.** `setPlaybackRate()` 호출 직후 `getPlaybackRate()`를 읽지 말 것 — 공식 문서가 명시적으로 이 값을 신뢰하지 말라고 경고한다.
 - **영상을 새로 cue/load하면 배속이 1로 리셋된다.** `usePlayer.ts`의 `desiredRateRef`가 이를 기억했다가 재적용한다.
 - **완전 gapless 루프는 불가능하다.** 스트림에 직접 접근할 수 없어 `seekTo()` 폴링으로만 되감기가 가능. 현실적 목표는 **p95 오버런 < 150ms**이며, 이걸 만족시키는 게 이 앱의 핵심 가치다.
@@ -41,10 +52,16 @@ YouTube 영상의 특정 구간을 배속 조절해 무한 반복하는 연습 �
 - 원격 저장소: `origin` → https://github.com/museloper/LoopTube.git (`main` 브랜치 추적 중).
 - **배포는 Vercel 없이 GitHub Pages로 한다.** 이 앱은 API 라우트·Server Actions·쿠키·동적 라우트 파라미터·`next/image` 등 서버가 필요한 기능을 전혀 쓰지 않으므로 `output: 'export'`로 완전 정적 export가 된다 (`next.config.ts`). `main` 브랜치에 push하면 `.github/workflows/deploy.yml`이 typecheck→lint→test→build→GitHub Pages 배포까지 자동으로 수행한다. 배포 주소: https://museloper.github.io/LoopTube/
   - `basePath`를 절대 하드코딩하지 말 것. `next.config.ts`는 `process.env.PAGES_BASE_PATH`를 읽고, 워크플로가 `actions/configure-pages`의 출력값을 넣어준다 — 저장소 이름이 바뀌거나 커스텀 도메인을 연결해도 코드 수정이 필요 없다.
-  - CI의 `verify` 잡에서 `npx tsc --noEmit` 앞에 반드시 `npx next typegen`을 먼저 실행해야 한다. `LayoutProps` 같은 라우트 타입은 원래 `next build`/`next dev`가 부산물로 만들어주는데, 로컬은 이미 그걸 실행해봐서 `.next/types`가 남아있어 `tsc`만으로도 통과하는 것처럼 보이지만, 클린 CI 체크아웃에는 그 타입이 없어 `Cannot find name 'LayoutProps'`로 실패한다 (실제로 한 번 겪은 문제). 이 단계를 "중복이니 지워도 되겠지"하고 빼면 CI가 다시 깨진다.
-  - `package-lock.json`은 macOS에서 만들면 CI(Linux)에 필요한 옵셔널 네이티브 의존성(`@emnapi/runtime` 등, wasm32-wasi 계열)이 누락될 수 있다 — 실제로 겪은 문제. lockfile이 CI에서 `npm ci`로 EUSAGE 에러를 내면, 플랫폼 탓이니 `rm -rf node_modules package-lock.json && npm install`로 완전히 재생성할 것 (부분 수정으로 안 고쳐짐).
+  - CI의 `verify` 잡에서 `npx tsc --noEmit` 앞의 `npx next typegen` 단계를 지우지 말 것. 로컬에선 없어도 통과하는 것처럼 보이지만, 클린 CI 체크아웃에서는 `Cannot find name 'LayoutProps'`로 깨진다. (경위: `docs/decisions.md`)
+  - lockfile이 CI에서 `npm ci`로 EUSAGE 에러를 내면, 만든 PC(macOS 등)와 CI(Linux)의 플랫폼 차이로 옵셔널 네이티브 의존성이 빠진 것이다. `rm -rf node_modules package-lock.json && npm install`로 완전히 재생성할 것 (부분 수정으로 안 고쳐짐). (경위: `docs/decisions.md`)
   - GitHub Pages 설정(Settings → Pages → Source: GitHub Actions)은 이미 `gh api`로 활성화해뒀다. 리포지토리를 새로 만들거나 fork한 경우에만 다시 설정하면 된다.
   - Server-only 기능(API 라우트, Server Actions 등)을 추가하는 순간 이 정적 export 전제가 깨진다 — 그런 기능이 필요해지면 GitHub Pages를 벗어나 Vercel 등 Node 서버가 있는 호스팅으로 옮겨야 한다는 뜻이니, 먼저 알릴 것.
+
+## 협업 방식
+
+- 요청 해석이 여러 갈래로 나뉘면 임의로 하나를 고르지 말고, 선택지 1~3개를 제시해 고르게 한다.
+- 막히면 추측으로 밀어붙이지 말고 멈춘다. 무엇이 불명확한지 짚고, 코드를 고치기 전에 원인 진단부터 공유한다.
+- "어떻게 ~해?" 형태의 질문에는 코드를 바로 고치지 말고, 설명만 할지 바로 적용할지 먼저 묻는다. "고쳐줘"처럼 실행을 명시한 요청은 바로 진행한다.
 
 ## 커밋 컨벤션
 
