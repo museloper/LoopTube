@@ -262,20 +262,30 @@ export default function Home() {
 
       <UrlInput onSubmit={handleUrlSubmit} />
 
-      <Player
-        containerRef={containerRef}
-        error={error}
-        hasVideo={Boolean(videoId) || playlistIds.length > 0}
-      />
-
-      {playlistIds.length > 0 && (
-        <PlaylistPanel
-          videoIds={playlistIds}
-          activeVideoId={videoId}
-          onSelect={(id) => handleLoad(id, null)}
-          onClose={clearPlaylist}
+      {/* Always rendered so toggling the playlist never remounts the player's iframe. */}
+      <div
+        className={`flex flex-col gap-4 ${
+          playlistIds.length > 0 ? "lg:grid lg:grid-cols-[minmax(0,1fr)_18rem]" : ""
+        }`}
+      >
+        <Player
+          containerRef={containerRef}
+          error={error}
+          hasVideo={Boolean(videoId) || playlistIds.length > 0}
         />
-      )}
+
+        {playlistIds.length > 0 && (
+          // The panel is lifted out of flow on wide screens so the row takes the player's height.
+          <div className="lg:relative">
+            <PlaylistPanel
+              videoIds={playlistIds}
+              activeVideoId={videoId}
+              onSelect={(id) => handleLoad(id, null)}
+              onClose={clearPlaylist}
+            />
+          </div>
+        )}
+      </div>
 
       {meta && (
         <p className="truncate text-sm text-neutral-300">

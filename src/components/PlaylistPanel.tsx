@@ -43,7 +43,7 @@ export function PlaylistPanel({ videoIds, activeVideoId, onSelect, onClose }: Pl
   if (videoIds.length === 0) return null;
 
   return (
-    <section className="flex flex-col gap-2">
+    <section className="flex flex-col gap-2 lg:absolute lg:inset-0">
       <div className="flex items-center justify-between">
         <h2 className="text-xs font-medium uppercase tracking-wide text-neutral-400">
           재생목록 · {videoIds.length}개 영상
@@ -56,7 +56,7 @@ export function PlaylistPanel({ videoIds, activeVideoId, onSelect, onClose }: Pl
           닫기
         </button>
       </div>
-      <ol className="flex max-h-80 flex-col gap-1 overflow-y-auto rounded-xl bg-neutral-900 p-2">
+      <ol className="flex max-h-80 min-h-0 flex-col lg:max-h-none lg:flex-1 gap-1 overflow-y-auto rounded-xl bg-neutral-900 p-2">
         {videoIds.map((id, index) => {
           const meta = metaById[id];
           const active = id === activeVideoId;
