@@ -7,6 +7,7 @@ import { LoopLibrary } from "@/components/LoopLibrary";
 import { Player } from "@/components/Player";
 import { PlaylistPanel } from "@/components/PlaylistPanel";
 import { RepCounter } from "@/components/RepCounter";
+import { ShortcutsHelp } from "@/components/ShortcutsHelp";
 import { SpeedPicker } from "@/components/SpeedPicker";
 import { UrlInput } from "@/components/UrlInput";
 import { useHotkeys } from "@/hooks/useHotkeys";
@@ -21,6 +22,17 @@ import { PlayerState } from "@/lib/youtube/types";
 
 /** Grabbing A after the phrase has started is the common case, so offer a shortcut back. */
 const QUICK_CAPTURE_SECONDS = 3;
+
+const HELP_HIDDEN_UNTIL_KEY = "looptube:shortcuts-hidden-until";
+const HELP_SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
+
+function readHelpHiddenUntil(): number {
+  try {
+    return Number(localStorage.getItem(HELP_HIDDEN_UNTIL_KEY)) || 0;
+  } catch {
+    return 0;
+  }
+}
 
 export default function Home() {
   const {
@@ -182,28 +194,71 @@ export default function Home() {
     [videoId, handleLoad, seek, requestRate],
   );
 
+  const playFromStart = useCallback(() => {
+    if (!player) return;
+    player.seekTo(clampToVideo(start), true);
+    player.playVideo();
+  }, [player, clampToVideo, start]);
+
+  const nudge = (delta: number) => seek((player?.getCurrentTime() ?? currentTime) + delta);
+
+  const [helpMode, setHelpMode] = useState<"auto" | "manual" | null>(null);
+
+  useEffect(() => {
+    // Read after mount: the page is statically exported, so the server render can't know.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (Date.now() >= readHelpHiddenUntil()) setHelpMode("auto");
+  }, []);
+
+  const snoozeHelp = useCallback(() => {
+    try {
+      localStorage.setItem(HELP_HIDDEN_UNTIL_KEY, String(Date.now() + HELP_SNOOZE_MS));
+    } catch {}
+    setHelpMode(null);
+  }, []);
+
+  const closeHelp = useCallback(() => setHelpMode(null), []);
+
   useHotkeys(
     {
       " ": togglePlay,
-      a: () => updateStart(player?.getCurrentTime() ?? currentTime),
-      b: () => updateEnd(player?.getCurrentTime() ?? currentTime),
-      l: () => setLoopOn((on) => !on),
-      arrowleft: () => seek((player?.getCurrentTime() ?? currentTime) - 0.1),
-      arrowright: () => seek((player?.getCurrentTime() ?? currentTime) + 0.1),
-      "shift+arrowleft": () => seek((player?.getCurrentTime() ?? currentTime) - 1),
-      "shift+arrowright": () => seek((player?.getCurrentTime() ?? currentTime) + 1),
-      "[": () => stepRate(-1),
-      "]": () => stepRate(1),
+      p: togglePlay,
+      "[": () => updateStart(player?.getCurrentTime() ?? currentTime),
+      "]": () => updateEnd(player?.getCurrentTime() ?? currentTime),
+      l: playFromStart,
+      r: () => setLoopOn((on) => !on),
+      ",": () => nudge(-1),
+      ".": () => nudge(1),
+      // Shift+comma/period arrive as "<"/">", not as ","/"." with a modifier.
+      "shift+<": () => nudge(-5),
+      "shift+>": () => nudge(5),
+      "-": () => stepRate(-1),
+      "=": () => stepRate(1),
     },
-    ready,
+    ready && helpMode === null,
   );
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-5">
       <header className="flex items-baseline justify-between gap-3">
         <h1 className="text-lg font-bold tracking-tight">LoopTube</h1>
-        <p className="text-xs text-neutral-500">구간 반복 · 속도 조절 연습기</p>
+        <div className="flex items-baseline gap-3">
+          <p className="text-xs text-neutral-500">구간 반복 · 속도 조절 연습기</p>
+          <button
+            type="button"
+            onClick={() => setHelpMode("manual")}
+            className="rounded-md bg-neutral-800 px-2 py-1 text-xs text-neutral-300 transition hover:bg-neutral-700"
+          >
+            단축키 안내
+          </button>
+        </div>
       </header>
+
+      <ShortcutsHelp
+        open={helpMode !== null}
+        onClose={closeHelp}
+        onSnooze={helpMode === "auto" ? snoozeHelp : undefined}
+      />
 
       <UrlInput onSubmit={handleUrlSubmit} />
 
@@ -318,9 +373,9 @@ export default function Home() {
       </section>
 
       <footer className="pb-4 text-xs leading-relaxed text-neutral-600">
-        단축키 — <kbd>Space</kbd> 재생 · <kbd>A</kbd>/<kbd>B</kbd> 지점 지정 · <kbd>L</kbd> 반복 ·{" "}
-        <kbd>←</kbd>/<kbd>→</kbd> 0.1초 · <kbd>Shift</kbd>+<kbd>←</kbd>/<kbd>→</kbd> 1초 ·{" "}
-        <kbd>[</kbd>/<kbd>]</kbd> 속도
+        단축키 — <kbd>Space</kbd>/<kbd>P</kbd> 재생 · <kbd>[</kbd>/<kbd>]</kbd> 시작·끝 지정 ·{" "}
+        <kbd>L</kbd> 시작부터 재생 · <kbd>R</kbd> 반복 · <kbd>,</kbd>/<kbd>.</kbd> 1초 ·{" "}
+        <kbd>Shift</kbd>+<kbd>,</kbd>/<kbd>.</kbd> 5초 · <kbd>-</kbd>/<kbd>=</kbd> 속도
       </footer>
     </main>
   );
