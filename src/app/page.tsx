@@ -130,6 +130,18 @@ export default function Home() {
     [clampToVideo, start],
   );
 
+  /** With the loop off the playhead can wander past the end marker; marking a
+      start there begins a fresh region instead of being pulled back to the end. */
+  const setStartToPlayhead = useCallback(() => {
+    const now = player?.getCurrentTime() ?? currentTime;
+    if (loopOn || now <= end - MIN_REGION_SECONDS) {
+      updateStart(now);
+      return;
+    }
+    setEndOverride(null);
+    setStart(clampToVideo(duration ? Math.min(now, duration - MIN_REGION_SECONDS) : now));
+  }, [player, currentTime, loopOn, end, updateStart, clampToVideo, duration]);
+
   const seek = useCallback(
     (seconds: number) => player?.seekTo(clampToVideo(seconds), true),
     [player, clampToVideo],
@@ -223,7 +235,7 @@ export default function Home() {
     {
       " ": togglePlay,
       p: togglePlay,
-      "[": () => updateStart(player?.getCurrentTime() ?? currentTime),
+      "[": setStartToPlayhead,
       "]": () => updateEnd(player?.getCurrentTime() ?? currentTime),
       l: playFromStart,
       r: () => setLoopOn((on) => !on),
@@ -347,7 +359,7 @@ export default function Home() {
           value={start}
           disabled={!videoId}
           onNudge={(delta) => updateStart(start + delta)}
-          onSetToPlayhead={() => updateStart(player?.getCurrentTime() ?? currentTime)}
+          onSetToPlayhead={setStartToPlayhead}
         />
         <FineTuner
           label="B · 끝"
