@@ -7,7 +7,7 @@ import { LoopLibrary } from "@/components/LoopLibrary";
 import { Player } from "@/components/Player";
 import { PlaylistPanel } from "@/components/PlaylistPanel";
 import { RepCounter } from "@/components/RepCounter";
-import { ShortcutsHelp } from "@/components/ShortcutsHelp";
+import { ShortcutsFooter, ShortcutsHelp } from "@/components/ShortcutsHelp";
 import { SpeedPicker } from "@/components/SpeedPicker";
 import { UrlInput } from "@/components/UrlInput";
 import { useHotkeys } from "@/hooks/useHotkeys";
@@ -404,10 +404,8 @@ export default function Home() {
         <LoopLibrary videoId={videoId} onApply={applyLoop} />
       </section>
 
-      <footer className="pb-4 text-xs leading-relaxed text-neutral-600">
-        단축키 — <kbd>Space</kbd>/<kbd>P</kbd> 재생 · <kbd>[</kbd>/<kbd>]</kbd> 시작·끝 지정 ·{" "}
-        <kbd>{playFromStartKey}</kbd>+<kbd>←</kbd> 시작부터 재생 · <kbd>L</kbd> 반복 · <kbd>←</kbd>/<kbd>→</kbd>(<kbd>,</kbd>/
-        <kbd>.</kbd>) 1초 · <kbd>Shift</kbd>+<kbd>←</kbd>/<kbd>→</kbd> 5초 · <kbd>-</kbd>/<kbd>=</kbd> 속도
+      <footer className="pb-4">
+        <ShortcutsFooter playFromStartKey={playFromStartKey} />
       </footer>
     </main>
   );
