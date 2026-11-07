@@ -46,7 +46,7 @@ const shortcutGroups = (mod: string): { title: string; rows: { action: string; k
 /** The footer pairs opposite directions and shows only the main keys; the popup has the rest. */
 const footerItems = (mod: string): { label: string; keys: Keys }[] => [
   { label: "재생 / 일시정지", keys: [["Space"]] },
-  { label: "시작부터 재생", keys: [[mod, "←"]] },
+  { label: "구간 시작부터 재생", keys: [[mod, "←"]] },
   { label: "구간 시작 · 끝", keys: [["["], ["]"]] },
   { label: "구간 반복", keys: [["L"]] },
   { label: "1초 이동", keys: [["←"], ["→"]] },
@@ -147,9 +147,17 @@ function KeyCombo({ combo }: { combo: string[] }) {
 }
 
 /** Alternatives wrap as whole combos, so a long list can't squeeze the text beside it. */
-function KeyAlternatives({ keys, separator }: { keys: Keys; separator?: string }) {
+function KeyAlternatives({
+  keys,
+  separator,
+  className = "shrink-0",
+}: {
+  keys: Keys;
+  separator?: string;
+  className?: string;
+}) {
   return (
-    <span className="flex shrink-0 flex-wrap items-center justify-end gap-x-1.5 gap-y-1">
+    <span className={`flex flex-wrap items-center justify-end gap-x-1.5 gap-y-1 ${className}`}>
       {keys.map((combo, i) => (
         <span key={i} className="inline-flex items-center gap-1.5">
           {i > 0 && separator && <span className="text-xs text-neutral-500">{separator}</span>}
@@ -169,8 +177,9 @@ export function ShortcutsFooter({ playFromStartKey }: { playFromStartKey: string
           key={label}
           className="flex items-center justify-between gap-3 rounded-lg bg-neutral-900 px-3 py-2"
         >
-          <span className="break-keep text-neutral-400">{label}</span>
-          <KeyAlternatives keys={keys} />
+          {/* The label never breaks; when a card is tight the keys wrap instead. */}
+          <span className="shrink-0 whitespace-nowrap text-neutral-400">{label}</span>
+          <KeyAlternatives keys={keys} className="min-w-0" />
         </li>
       ))}
     </ul>
