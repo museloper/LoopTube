@@ -11,6 +11,7 @@ import { ShortcutsHelp } from "@/components/ShortcutsHelp";
 import { SpeedPicker } from "@/components/SpeedPicker";
 import { UrlInput } from "@/components/UrlInput";
 import { useHotkeys } from "@/hooks/useHotkeys";
+import { useIsMac } from "@/hooks/useIsMac";
 import { useLoopEngine } from "@/hooks/useLoopEngine";
 import { usePlayer } from "@/hooks/usePlayer";
 import { usePlayhead } from "@/hooks/usePlayhead";
@@ -231,21 +232,29 @@ export default function Home() {
 
   const closeHelp = useCallback(() => setHelpMode(null), []);
 
+  // macOS takes Ctrl+← for switching desktops, so the browser never sees it there.
+  const isMac = useIsMac();
+  const playFromStartKey = isMac ? "Cmd" : "Ctrl";
+
   useHotkeys(
     {
-      " ": togglePlay,
-      p: togglePlay,
-      "[": setStartToPlayhead,
-      "]": () => updateEnd(player?.getCurrentTime() ?? currentTime),
-      l: playFromStart,
-      r: () => setLoopOn((on) => !on),
-      ",": () => nudge(-1),
-      ".": () => nudge(1),
-      // Shift+comma/period arrive as "<"/">", not as ","/"." with a modifier.
-      "shift+<": () => nudge(-5),
-      "shift+>": () => nudge(5),
-      "-": () => stepRate(-1),
-      "=": () => stepRate(1),
+      space: togglePlay,
+      keyp: togglePlay,
+      bracketleft: setStartToPlayhead,
+      bracketright: () => updateEnd(player?.getCurrentTime() ?? currentTime),
+      keyl: () => setLoopOn((on) => !on),
+      // Cmd+← is the browser's Back on macOS; claiming it here keeps the page from navigating away.
+      [isMac ? "meta+arrowleft" : "ctrl+arrowleft"]: playFromStart,
+      comma: () => nudge(-1),
+      period: () => nudge(1),
+      arrowleft: () => nudge(-1),
+      arrowright: () => nudge(1),
+      "shift+comma": () => nudge(-5),
+      "shift+period": () => nudge(5),
+      "shift+arrowleft": () => nudge(-5),
+      "shift+arrowright": () => nudge(5),
+      minus: () => stepRate(-1),
+      equal: () => stepRate(1),
     },
     ready && helpMode === null,
   );
@@ -267,6 +276,7 @@ export default function Home() {
       </header>
 
       <ShortcutsHelp
+        playFromStartKey={playFromStartKey}
         open={helpMode !== null}
         onClose={closeHelp}
         onSnooze={helpMode === "auto" ? snoozeHelp : undefined}
@@ -396,8 +406,8 @@ export default function Home() {
 
       <footer className="pb-4 text-xs leading-relaxed text-neutral-600">
         단축키 — <kbd>Space</kbd>/<kbd>P</kbd> 재생 · <kbd>[</kbd>/<kbd>]</kbd> 시작·끝 지정 ·{" "}
-        <kbd>L</kbd> 시작부터 재생 · <kbd>R</kbd> 반복 · <kbd>,</kbd>/<kbd>.</kbd> 1초 ·{" "}
-        <kbd>Shift</kbd>+<kbd>,</kbd>/<kbd>.</kbd> 5초 · <kbd>-</kbd>/<kbd>=</kbd> 속도
+        <kbd>{playFromStartKey}</kbd>+<kbd>←</kbd> 시작부터 재생 · <kbd>L</kbd> 반복 · <kbd>←</kbd>/<kbd>→</kbd>(<kbd>,</kbd>/
+        <kbd>.</kbd>) 1초 · <kbd>Shift</kbd>+<kbd>←</kbd>/<kbd>→</kbd> 5초 · <kbd>-</kbd>/<kbd>=</kbd> 속도
       </footer>
     </main>
   );

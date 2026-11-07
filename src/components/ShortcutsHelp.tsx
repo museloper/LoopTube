@@ -2,25 +2,27 @@
 
 import { useEffect } from "react";
 
-const SHORTCUTS: { keys: string[][]; action: string }[] = [
+const shortcuts = (playFromStartKey: string): { keys: string[][]; action: string }[] => [
   { keys: [["Space"], ["P"]], action: "재생 / 일시정지" },
   { keys: [["["]], action: "현재 위치를 구간 시작으로" },
   { keys: [["]"]], action: "현재 위치를 구간 끝으로" },
-  { keys: [["L"]], action: "구간 시작 지점부터 재생" },
-  { keys: [["R"]], action: "구간 반복 켜기 / 끄기" },
-  { keys: [[","], ["."]], action: "1초 뒤로 / 앞으로" },
-  { keys: [["Shift", ","], ["Shift", "."]], action: "5초 뒤로 / 앞으로" },
+  { keys: [[playFromStartKey, "←"]], action: "구간 시작 지점부터 재생" },
+  { keys: [["L"]], action: "구간 반복 켜기 / 끄기" },
+  { keys: [["←"], ["→"], [","], ["."]], action: "1초 뒤로 / 앞으로" },
+  { keys: [["Shift", "←"], ["Shift", "→"], ["Shift", ","], ["Shift", "."]], action: "5초 뒤로 / 앞으로" },
   { keys: [["-"], ["="]], action: "속도 한 단계 낮추기 / 높이기" },
 ];
 
 interface ShortcutsHelpProps {
   open: boolean;
+  /** "Cmd" on macOS, "Ctrl" elsewhere. */
+  playFromStartKey: string;
   onClose: () => void;
   /** Absent when opened on demand, since snoozing only makes sense for the automatic popup. */
   onSnooze?: () => void;
 }
 
-export function ShortcutsHelp({ open, onClose, onSnooze }: ShortcutsHelpProps) {
+export function ShortcutsHelp({ open, playFromStartKey, onClose, onSnooze }: ShortcutsHelpProps) {
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -50,7 +52,7 @@ export function ShortcutsHelp({ open, onClose, onSnooze }: ShortcutsHelpProps) {
 
         <table className="w-full text-sm">
           <tbody>
-            {SHORTCUTS.map(({ keys, action }) => (
+            {shortcuts(playFromStartKey).map(({ keys, action }) => (
               <tr key={action} className="border-b border-neutral-800 last:border-0">
                 <td className="whitespace-nowrap py-2 pr-4">
                   {keys.map((combo, i) => (

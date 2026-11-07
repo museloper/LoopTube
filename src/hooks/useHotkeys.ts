@@ -5,8 +5,11 @@ import { useEffect, useRef } from "react";
 export type HotkeyMap = Record<string, (event: KeyboardEvent) => void>;
 
 /**
- * Keys are matched as "shift+arrowleft" style descriptors. Typing in an input
- * must never trigger a shortcut, since the URL field lives on the same screen.
+ * Keys are matched by physical key (`event.code`) as "meta+ctrl+shift+arrowleft"
+ * style descriptors, e.g. "keyl", "comma", "space". `event.key` can't be used:
+ * with the Korean IME on, L arrives as "ㅣ" (or "Process"), so shortcuts would
+ * only work in the English layout. Typing in an input must never trigger a
+ * shortcut, since the URL field lives on the same screen.
  */
 export function useHotkeys(map: HotkeyMap, enabled = true) {
   const mapRef = useRef(map);
@@ -24,9 +27,11 @@ export function useHotkeys(map: HotkeyMap, enabled = true) {
       const target = event.target as HTMLElement | null;
       if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
       if (target?.isContentEditable) return;
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      // Alt combos stay with the browser and OS. Cmd combos pass through, but
+      // only ones listed in the map are intercepted, so Cmd+C etc. still work.
+      if (event.altKey) return;
 
-      const descriptor = `${event.shiftKey ? "shift+" : ""}${event.key.toLowerCase()}`;
+      const descriptor = `${event.metaKey ? "meta+" : ""}${event.ctrlKey ? "ctrl+" : ""}${event.shiftKey ? "shift+" : ""}${event.code.toLowerCase()}`;
       const handler = mapRef.current[descriptor];
       if (!handler) return;
 
