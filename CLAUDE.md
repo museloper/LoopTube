@@ -43,7 +43,7 @@ YouTube 영상의 특정 구간을 배속 조절해 무한 반복하는 연습 �
 
 ## 진행 단계 (로드맵의 어디쯤인지)
 
-1단계(웹 MVP: 플레이어+루프엔진+배속+로컬저장)까지 완료. **2단계(PWA 설치형+반복카운터 다듬기), 3단계(Supabase 로그인+기기 간 동기화), 4단계(Capacitor iOS/Android)는 아직 시작 안 함.** `src/lib/db.ts`의 `syncedAt` 필드는 3단계를 위해 미리 만들어 둔 자리로, 지금은 항상 `null`이다 — 아직 동기화 코드가 없다고 당연하게 여길 것.
+1단계(웹 MVP: 플레이어+루프엔진+배속+로컬저장)까지 완료. 2단계 중 PWA 설치는 추가됨(`src/app/manifest.ts`, `public/sw.js`). **2단계의 반복카운터 다듬기, 3단계(Supabase 로그인+기기 간 동기화), 4단계(Capacitor iOS/Android)는 아직 시작 안 함.** `src/lib/db.ts`의 `syncedAt` 필드는 3단계를 위해 미리 만들어 둔 자리로, 지금은 항상 `null`이다 — 아직 동기화 코드가 없다고 당연하게 여길 것.
 
 ## 운영 메모
 
@@ -54,6 +54,7 @@ YouTube 영상의 특정 구간을 배속 조절해 무한 반복하는 연습 �
   - `basePath`를 절대 하드코딩하지 말 것. `next.config.ts`는 `process.env.PAGES_BASE_PATH`를 읽고, 워크플로가 `actions/configure-pages`의 출력값을 넣어준다 — 저장소 이름이 바뀌거나 커스텀 도메인을 연결해도 코드 수정이 필요 없다.
   - CI의 `verify` 잡에서 `npx tsc --noEmit` 앞의 `npx next typegen` 단계를 지우지 말 것. 로컬에선 없어도 통과하는 것처럼 보이지만, 클린 CI 체크아웃에서는 `Cannot find name 'LayoutProps'`로 깨진다. (경위: `docs/decisions.md`)
   - lockfile이 CI에서 `npm ci`로 EUSAGE 에러를 내면, 만든 PC(macOS 등)와 CI(Linux)의 플랫폼 차이로 옵셔널 네이티브 의존성이 빠진 것이다. `rm -rf node_modules package-lock.json && npm install`로 완전히 재생성할 것 (부분 수정으로 안 고쳐짐). (경위: `docs/decisions.md`)
+  - PWA: Next는 manifest 내부 URL과 metadata `icons` 문자열에 basePath를 붙이지 않는다 — `manifest.ts`·`layout.tsx`에서 `PAGES_BASE_PATH`로 직접 접두사를 붙이고, 클라이언트(SW 등록)는 `next.config.ts`의 `env.NEXT_PUBLIC_BASE_PATH`로 받는다. `public/sw.js`는 same-origin 요청만 캐시한다(YouTube 응답 캐시 금지). 아이콘은 `node scripts/generate-icons.mjs`로 재생성.
   - GitHub Pages 설정(Settings → Pages → Source: GitHub Actions)은 이미 `gh api`로 활성화해뒀다. 리포지토리를 새로 만들거나 fork한 경우에만 다시 설정하면 된다.
   - Server-only 기능(API 라우트, Server Actions 등)을 추가하는 순간 이 정적 export 전제가 깨진다 — 그런 기능이 필요해지면 GitHub Pages를 벗어나 Vercel 등 Node 서버가 있는 호스팅으로 옮겨야 한다는 뜻이니, 먼저 알릴 것.
 

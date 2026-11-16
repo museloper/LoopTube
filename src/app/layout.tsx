@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -8,6 +9,11 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 export const metadata: Metadata = {
   title: "LoopTube — 구간 반복 연습기",
   description: "YouTube 영상의 원하는 구간을 느린 속도로 무한 반복하는 연습 도구",
+  applicationName: "LoopTube",
+  // iOS ignores the manifest's icons and uses these for "홈 화면에 추가".
+  appleWebApp: { capable: true, title: "LoopTube", statusBarStyle: "black" },
+  // basePath is not applied to metadata icon URLs, so prefix it by hand.
+  icons: { apple: `${process.env.PAGES_BASE_PATH ?? ""}/icons/apple-touch-icon.png` },
 };
 
 export const viewport: Viewport = {
@@ -22,7 +28,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ko" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">
+        {children}
+        <ServiceWorkerRegister />
+      </body>
     </html>
   );
 }
